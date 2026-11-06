@@ -90,6 +90,33 @@ The API starts at `http://localhost:8080`.
 
 > The app fails to start if `ADMIN_USERNAME` names a user that does not exist yet. Register the user first.
 
+## Running with Docker
+
+Docker Compose starts both PostgreSQL and the app, so you don't need either installed locally.
+
+1. Create a file named `.env` in the project root. It is listed in `.gitignore`. Docker Compose reads it automatically.
+
+   ```properties
+   # Base64-encoded key. Generate one with: openssl rand -base64 64
+   JWT_SECRET=your_base64_secret
+   ```
+
+2. Build and start the containers:
+
+   ```bash
+   docker compose up --build
+   ```
+
+| Service | Address |
+|---|---|
+| API | http://localhost:8081 |
+| Swagger UI | http://localhost:8081/swagger-ui/index.html |
+| PostgreSQL | `localhost:5433` (database `buildtrack`, user `postgres`) |
+
+The Docker setup uses different ports from a local run (8081 and 5433), so it can run alongside a local PostgreSQL. Data is kept in the `postgres_data` volume.
+
+To stop the containers, run `docker compose down`. To also delete the database volume, add `-v`.
+
 ## API documentation (Swagger)
 
 With the app running, open:
