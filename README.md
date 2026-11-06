@@ -4,6 +4,19 @@
 
 BuildTrack is a REST API for managing a construction business. It keeps track of **customers**, the **projects** you build for them, and the **tasks** inside each project. Access is secured with JWT, and roles separate admins from regular users.
 
+## Live demo
+
+**[Open BuildTrack in Swagger UI](https://buildtrack-42bg.onrender.com/swagger-ui/index.html)**. No install needed.
+
+1. Open `POST /api/auth/login`, click **Try it out**, and log in with the read-only demo account:
+   ```json
+   { "username": "demo", "password": "DemoPass123!" }
+   ```
+2. Copy the `token`, click **Authorize** at the top, and paste it.
+3. Try `GET /api/customers`, `GET /api/projects` or `GET /api/tasks`. The demo account can read everything, and gets `403 Forbidden` if it tries to change data.
+
+> Hosted on Render's free plan. After 15 minutes without visits the app goes to sleep, so the first request can take about a minute. After that it responds normally.
+
 ![BuildTrack API in Swagger UI](docs/swagger-ui.jpg)
 
 ## Highlights
