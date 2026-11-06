@@ -4,6 +4,8 @@
 
 BuildTrack is a REST API for managing a construction business. It keeps track of **customers**, the **projects** you build for them, and the **tasks** inside each project. Access is secured with JWT, and roles separate admins from regular users.
 
+![BuildTrack API in Swagger UI](docs/swagger-ui.jpg)
+
 ## Highlights
 
 - **Stateless JWT security** with a custom authentication filter, BCrypt password hashing, and method-level role checks (`@PreAuthorize`).
@@ -134,8 +136,10 @@ To stop the containers, run `docker compose down`. To also delete the database v
 
 With the app running, open:
 
-- **Swagger UI:** http://localhost:8080/swagger-ui/index.html
-- **OpenAPI JSON:** http://localhost:8080/v3/api-docs
+| | Local run | Docker Compose |
+|---|---|---|
+| Swagger UI | http://localhost:8080/swagger-ui/index.html | http://localhost:8081/swagger-ui/index.html |
+| OpenAPI JSON | http://localhost:8080/v3/api-docs | http://localhost:8081/v3/api-docs |
 
 To call protected endpoints from Swagger:
 
