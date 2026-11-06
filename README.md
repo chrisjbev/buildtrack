@@ -1,6 +1,19 @@
 # BuildTrack
 
+[![CI](https://github.com/chrisjbev/buildtrack/actions/workflows/ci.yml/badge.svg)](https://github.com/chrisjbev/buildtrack/actions/workflows/ci.yml)
+
 BuildTrack is a REST API for managing a construction business. It keeps track of **customers**, the **projects** you build for them, and the **tasks** inside each project. Access is secured with JWT, and roles separate admins from regular users.
+
+## Highlights
+
+- **Stateless JWT security** with a custom authentication filter, BCrypt password hashing, and method-level role checks (`@PreAuthorize`).
+- **Correct HTTP semantics:** `401` when not logged in, `403` when the role isn't allowed, `400` with field-level messages for invalid input.
+- **Relational data model:** Customer → Project → Task, built with JPA/Hibernate on PostgreSQL.
+- **Layered architecture:** controllers, services, repositories, DTOs, and global exception handling.
+- **62 automated tests:** unit tests, MockMvc controller tests, and integration tests against a real PostgreSQL database.
+- **Continuous integration:** GitHub Actions runs the full test suite on every push.
+- **Containerized:** a multi-stage Dockerfile, plus Docker Compose for the app and its database.
+- **Self-documenting API:** OpenAPI / Swagger UI with JWT "Authorize" support.
 
 ## Features
 
