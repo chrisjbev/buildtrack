@@ -11,10 +11,12 @@ BuildTrack is a REST API for managing a construction business. It keeps track of
 - **Stateless JWT security** with a custom authentication filter, BCrypt password hashing, and method-level role checks (`@PreAuthorize`).
 - **Correct HTTP semantics:** `401` when not logged in, `403` when the role isn't allowed, `400` with field-level messages for invalid input.
 - **Relational data model:** Customer → Project → Task, built with JPA/Hibernate on PostgreSQL.
+- **Versioned schema migrations:** Flyway owns the database schema, and Hibernate only validates that the entities match it.
 - **Layered architecture:** controllers, services, repositories, DTOs, and global exception handling.
 - **62 automated tests:** unit tests, MockMvc controller tests, and integration tests against a real PostgreSQL database.
 - **Continuous integration:** GitHub Actions runs the full test suite on every push.
 - **Containerized:** a multi-stage Dockerfile, plus Docker Compose for the app and its database.
+- **Reviewer-ready demo mode:** an optional seeder loads sample customers, projects and tasks, plus a read-only demo login.
 - **Self-documenting API:** OpenAPI / Swagger UI with JWT "Authorize" support.
 
 ## Features
@@ -37,6 +39,7 @@ BuildTrack is a REST API for managing a construction business. It keeps track of
 | Language | Java 21 |
 | Framework | Spring Boot 4.1 (Web MVC, Data JPA, Validation, Security) |
 | Database | PostgreSQL, accessed through Hibernate / JPA |
+| Migrations | Flyway |
 | Authentication | JWT (jjwt 0.12), BCrypt password hashing |
 | API docs | springdoc-openapi 3 (Swagger UI) |
 | Build | Maven (wrapper included) |
@@ -70,7 +73,7 @@ src/main/java/com/buildtrack/buildtrack
 CREATE DATABASE buildtrack;
 ```
 
-Hibernate creates the tables automatically on the first run (`ddl-auto=update`).
+Flyway creates the tables on the first run. See [Database migrations](#database-migrations).
 
 ### 2. Add local settings and secrets
 
@@ -81,8 +84,11 @@ Create a file named `local.properties` in the project root. It is already listed
 DB_PASSWORD=your_db_password
 # Base64-encoded key of at least 256 bits. Generate one with: openssl rand -base64 64
 JWT_SECRET=your_base64_secret
-# Optional. Must be an existing username, which is promoted to ADMIN on startup.
+# Optional: admin account (see step 4)
 ADMIN_USERNAME=
+ADMIN_PASSWORD=
+# Optional: load sample data and a read-only demo login
+DEMO_DATA=false
 ```
 
 `DB_URL` (default `jdbc:postgresql://localhost:5432/buildtrack`) and `DB_USERNAME` (default `postgres`) can also be set here when your setup differs. Environment variables with the same names override these values.
@@ -99,11 +105,34 @@ The API starts at `http://localhost:8080`.
 
 ### 4. Create an admin user
 
-1. Register a user with `POST /api/auth/register`. New users get the `USER` role.
-2. Set `ADMIN_USERNAME` to that username in `local.properties`.
-3. Restart the app. On startup, that user is promoted to `ADMIN`.
+Set both values in `local.properties` and restart the app:
 
-> The app fails to start if `ADMIN_USERNAME` names a user that does not exist yet. Register the user first.
+```properties
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=choose_a_strong_password
+```
+
+On startup, the app creates that user with the `ADMIN` role. If the username already belongs to a registered user, that user is promoted to `ADMIN` and the password is left unchanged. New accounts created with `POST /api/auth/register` always get the `USER` role.
+
+## Try it with demo data
+
+Set `DEMO_DATA=true` in `local.properties`, or as an environment variable, and start the app. On an empty database it loads:
+
+- **3 customers**, **4 projects** and **7 tasks**, covering every project and task status.
+- A **read-only demo login**:
+
+| Username | Password | Role |
+|---|---|---|
+| `demo` | `DemoPass123!` | `USER` (can read everything, cannot change data) |
+
+To try it:
+
+1. Open Swagger UI and run `POST /api/auth/login` with the demo credentials.
+2. Copy the `token`, click **Authorize**, and paste it.
+3. Try `GET /api/customers`, `GET /api/projects` or `GET /api/tasks/project/1`.
+4. Try `POST /api/customers` to see the role check return `403 Forbidden`.
+
+To test create, update and delete, log in with the admin account from step 4. The seeder only adds data when the database has no customers, so restarting never duplicates it. The demo password can be changed with `DEMO_PASSWORD`.
 
 ## Running with Docker
 
@@ -131,6 +160,32 @@ Docker Compose starts both PostgreSQL and the app, so you don't need either inst
 The Docker setup uses different ports from a local run (8081 and 5433), so it can run alongside a local PostgreSQL. Data is kept in the `postgres_data` volume.
 
 To stop the containers, run `docker compose down`. To also delete the database volume, add `-v`.
+
+## Database migrations
+
+The schema is managed by [Flyway](https://flywaydb.org/). Migration scripts live in `src/main/resources/db/migration` and run automatically on startup:
+
+| Version | File | Change |
+|---|---|---|
+| 1 | `V1__initial_schema.sql` | Customers, projects, tasks and users, with foreign keys, status checks and indexes |
+
+- Hibernate runs with `ddl-auto=validate`. It never changes the schema, and it stops the app at startup if an entity no longer matches the database.
+- Databases created before Flyway was added are recognized automatically and marked as version 1 (`baseline-on-migrate`), without changing their existing tables or data.
+- To change the schema, add a new file such as `V2__add_task_priority.sql`. Never edit a migration that has already run.
+
+## Deployment
+
+The repository includes a [Render](https://render.com) Blueprint (`render.yaml`) that builds the Dockerfile and runs it as a web service. It needs an external PostgreSQL database, for example a free one from [Neon](https://neon.tech).
+
+| Variable | Value |
+|---|---|
+| `DB_URL` | `jdbc:postgresql://<host>/<database>?sslmode=require` |
+| `DB_USERNAME`, `DB_PASSWORD` | Database credentials |
+| `JWT_SECRET` | Generated by Render automatically |
+| `ADMIN_USERNAME`, `ADMIN_PASSWORD` | Private admin login. Do not publish it. |
+| `DEMO_DATA` | `true`, so visitors can log in as `demo` |
+
+The app listens on the `PORT` that the host provides, and Flyway creates the schema on the first start.
 
 ## API documentation (Swagger)
 
